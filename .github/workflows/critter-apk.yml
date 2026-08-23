@@ -1,0 +1,52 @@
+name: Build Critter Pop APK
+
+on:
+  push:
+    branches: [critter-pop-demo]
+    paths:
+      - 'critter-android/**'
+      - 'critter-pop/index.html'
+      - '.github/workflows/critter-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Bundle stable Critter Pop game
+        run: |
+          mkdir -p critter-android/app/src/main/assets
+          cp critter-pop/index.html critter-android/app/src/main/assets/index.html
+
+      - name: Build APK
+        run: gradle -p critter-android :app:assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Critter-Pop-Android
+          path: critter-android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
