@@ -44,19 +44,41 @@ jobs:
           cp critter-pop/index.html critter-android/app/src/main/assets/index.html
 
       - name: Build APK
-        run: gradle -p critter-android :app:assembleDebug --stacktrace
-
-      - name: Publish APK into repository
+        id: build_apk
+        continue-on-error: true
         run: |
-          mkdir -p apk-output
-          cp critter-android/app/build/outputs/apk/debug/app-debug.apk apk-output/Critter-Pop.apk
+          set -o pipefail
+          gradle -p critter-android :app:assembleDebug --stacktrace 2>&1 | tee /tmp/critter-build.log
+
+      - name: Publish APK and build report
+        if: always()
+        run: |
+          mkdir -p apk-output build-status
+          {
+            echo "Build step outcome: ${{ steps.build_apk.outcome }}"
+            echo "Commit: $GITHUB_SHA"
+            echo "Date: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo
+            echo "--- Last 120 build log lines ---"
+            tail -n 120 /tmp/critter-build.log 2>/dev/null || true
+          } > build-status/critter-apk-build.txt
+
+          if [ -f critter-android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp critter-android/app/build/outputs/apk/debug/app-debug.apk apk-output/Critter-Pop.apk
+            echo "APK produced successfully." >> build-status/critter-apk-build.txt
+          else
+            echo "APK was not produced." >> build-status/critter-apk-build.txt
+          fi
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apk-output/Critter-Pop.apk
-          git diff --cached --quiet || git commit -m 'Build Critter Pop Android APK'
+          git add build-status/critter-apk-build.txt
+          if [ -f apk-output/Critter-Pop.apk ]; then git add apk-output/Critter-Pop.apk; fi
+          git diff --cached --quiet || git commit -m 'Update Critter Pop Android build output'
           git push origin HEAD:critter-pop-demo
 
       - name: Upload APK artifact
+        if: steps.build_apk.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: Critter-Pop-Android
