@@ -1,7 +1,7 @@
-name: Deploy MAVENI Play
+name: Deploy Critter Pop
 on:
   push:
-    branches: [main]
+    branches: [critter-pop-demo]
   workflow_dispatch:
 permissions:
   contents: read
