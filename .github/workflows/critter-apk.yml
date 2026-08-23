@@ -5,7 +5,7 @@ on:
     branches: [critter-pop-demo]
     paths:
       - 'critter-android/**'
-      - 'critter-pop/index.html'
+      - 'critter-pop/apk-stable.html'
       - '.github/workflows/critter-apk.yml'
   workflow_dispatch:
 
@@ -38,10 +38,10 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Bundle stable Critter Pop game
+      - name: Bundle deterministic Critter Pop game
         run: |
           mkdir -p critter-android/app/src/main/assets
-          cp critter-pop/index.html critter-android/app/src/main/assets/index.html
+          cp critter-pop/apk-stable.html critter-android/app/src/main/assets/index.html
 
       - name: Build APK
         id: build_apk
